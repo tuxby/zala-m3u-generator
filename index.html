@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Генератор IPTV-плейлиста</title>
+</head>
+<body>
+<h2>Скачивание IPTV-плейлиста...</h2>
+
+<script>
+  document.addEventListener("DOMContentLoaded", fetchChannels);
+
+  async function fetchChannels() {
+    const apiUrl = "http://fe.svc.ott.zala.by/CacheClientJson/json/ChannelPackage/list_channels?channelPackageId=59028300&locationId=1111&from=0&to=9999";
+
+    try {
+      let response = await fetch(apiUrl);
+      if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+
+      let data = await response.json();
+
+      let playlist = "#EXTM3U\n";
+      data.channels_list.forEach(channel => {
+        if (channel.isOttEncrypted === "0" && channel.videoServerProtocol === "hls") {
+          let group = channel.isAdult === "1" ? ' group-title="Взрослые"' : 'group-title="Общие"';
+          playlist += `#EXTINF:-1 tvg-name="${channel.bcname}" tvg-logo="${channel.logo}"${group},${channel.bcname}\n`;
+          playlist += `${channel.ottURL}\n`;
+        }
+      });
+
+      downloadPlaylist(playlist);
+
+    } catch (error) {
+      alert("Ошибка при загрузке каналов: " + error.message);
+    }
+  }
+
+  function downloadPlaylist(content) {
+    let blob = new Blob([content], { type: "text/plain" });
+    let link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "zala.m3u8";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+</script>
+</body>
+</html>
